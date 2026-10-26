@@ -1,9 +1,33 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { NativeConnection, Worker, type WorkerOptions } from '@temporalio/worker';
+import {
+  DefaultLogger,
+  NativeConnection,
+  Runtime,
+  Worker,
+  type LogLevel,
+  type WorkerOptions,
+} from '@temporalio/worker';
 import { config } from '../lib/config';
 import { logger } from '../lib/logger';
 import * as activities from './activities';
+
+const pinoLevels: Record<LogLevel, 'trace' | 'debug' | 'info' | 'warn' | 'error'> = {
+  TRACE: 'trace',
+  DEBUG: 'debug',
+  INFO: 'info',
+  WARN: 'warn',
+  ERROR: 'error',
+};
+
+function installTemporalLogger(): void {
+  Runtime.install({
+    logger: new DefaultLogger('TRACE', ({ level, message, meta }) => {
+      const { taskToken: _taskToken, ...fields } = meta ?? {};
+      logger[pinoLevels[level]](fields, message);
+    }),
+  });
+}
 
 const useBundle = config.NODE_ENV === 'production';
 const bundlePath = path.resolve(__dirname, '../workflow-bundle.js');
@@ -20,6 +44,7 @@ async function main(): Promise<void> {
     );
   }
 
+  installTemporalLogger();
   const connection = await NativeConnection.connect({ address: config.TEMPORAL_ADDRESS });
   try {
     const worker = await Worker.create({
