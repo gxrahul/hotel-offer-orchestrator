@@ -1,0 +1,6 @@
+[
+  { "hotelId": "b1", "name": "Holtin",      "price": 5340,  "city": "delhi",  "commissionPct": 20 },
+  { "hotelId": "b2", "name": "radison ",    "price": 6100,  "city": "delhi",  "commissionPct": 18 },
+  { "hotelId": "b3", "name": "Taj Palace",  "price": 9000,  "city": "delhi",  "commissionPct": 12 },
+  { "hotelId": "b4", "name": "Lemon Tree",  "price": 3500,  "city": "delhi",  "commissionPct": 8 }
+]
