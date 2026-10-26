@@ -2,7 +2,8 @@ import { ApplicationFailure, log } from '@temporalio/activity';
 import { z } from 'zod';
 import { normalizeHotelName } from '../domain/normalizeHotelName';
 import type { HotelOffer, SupplierHotel, SupplierName } from '../domain/types';
-import { config } from '../lib/config';
+import type { Config } from '../lib/config';
+import type { HotelCache } from '../lib/hotelCache';
 
 const supplierHotelsSchema = z.array(
   z.object({
@@ -13,11 +14,6 @@ const supplierHotelsSchema = z.array(
     commissionPct: z.number(),
   }),
 );
-
-const supplierUrls: Record<SupplierName, string> = {
-  'Supplier A': config.SUPPLIER_A_URL,
-  'Supplier B': config.SUPPLIER_B_URL,
-};
 
 function parseHotels(supplier: SupplierName, body: string): SupplierHotel[] {
   let json: unknown;
@@ -60,41 +56,63 @@ function warnAboutDuplicateNames(supplier: SupplierName, city: string, hotels: S
   }
 }
 
-export async function fetchSupplierHotels(
-  supplier: SupplierName,
-  city: string,
-): Promise<HotelOffer[]> {
-  const url = new URL(supplierUrls[supplier]);
-  url.searchParams.set('city', city);
+export interface ActivityDeps {
+  hotelCache: HotelCache;
+  config: Pick<Config, 'SUPPLIER_A_URL' | 'SUPPLIER_B_URL'>;
+}
 
-  const startedAt = Date.now();
-  const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
-  const body = await response.text();
-  const durationMs = Date.now() - startedAt;
+export function createActivities({ hotelCache, config }: ActivityDeps) {
+  const supplierUrls: Record<SupplierName, string> = {
+    'Supplier A': config.SUPPLIER_A_URL,
+    'Supplier B': config.SUPPLIER_B_URL,
+  };
 
-  if (!response.ok) {
-    log.warn('Supplier request failed', { supplier, city, status: response.status, durationMs });
-    const message = `${supplier} responded with HTTP ${response.status}`;
-    if (response.status >= 500) {
-      throw new Error(message);
+  async function fetchSupplierHotels(supplier: SupplierName, city: string): Promise<HotelOffer[]> {
+    const url = new URL(supplierUrls[supplier]);
+    url.searchParams.set('city', city);
+
+    const startedAt = Date.now();
+    const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
+    const body = await response.text();
+    const durationMs = Date.now() - startedAt;
+
+    if (!response.ok) {
+      log.warn('Supplier request failed', { supplier, city, status: response.status, durationMs });
+      const message = `${supplier} responded with HTTP ${response.status}`;
+      if (response.status >= 500) {
+        throw new Error(message);
+      }
+      throw ApplicationFailure.nonRetryable(message, 'SUPPLIER_CLIENT_ERROR');
     }
-    throw ApplicationFailure.nonRetryable(message, 'SUPPLIER_CLIENT_ERROR');
+
+    const hotels = parseHotels(supplier, body);
+    log.info('Supplier responded', {
+      supplier,
+      city,
+      status: response.status,
+      durationMs,
+      hotelCount: hotels.length,
+    });
+    warnAboutDuplicateNames(supplier, city, hotels);
+
+    return hotels.map((hotel) => ({
+      name: hotel.name,
+      price: hotel.price,
+      supplier,
+      commissionPct: hotel.commissionPct,
+    }));
   }
 
-  const hotels = parseHotels(supplier, body);
-  log.info('Supplier responded', {
-    supplier,
-    city,
-    status: response.status,
-    durationMs,
-    hotelCount: hotels.length,
-  });
-  warnAboutDuplicateNames(supplier, city, hotels);
+  async function saveHotelOffers(
+    city: string,
+    hotels: HotelOffer[],
+    failedSuppliers: SupplierName[],
+  ): Promise<void> {
+    const { ttlSeconds } = await hotelCache.save(city, hotels, failedSuppliers);
+    log.info('Saved hotel offers to cache', { city, count: hotels.length, ttlSeconds });
+  }
 
-  return hotels.map((hotel) => ({
-    name: hotel.name,
-    price: hotel.price,
-    supplier,
-    commissionPct: hotel.commissionPct,
-  }));
+  return { fetchSupplierHotels, saveHotelOffers };
 }
+
+export type Activities = ReturnType<typeof createActivities>;

@@ -9,8 +9,10 @@ import {
   type WorkerOptions,
 } from '@temporalio/worker';
 import { config } from '../lib/config';
+import { createHotelCache } from '../lib/hotelCache';
 import { logger } from '../lib/logger';
-import * as activities from './activities';
+import { connectRedis } from '../lib/redis';
+import { createActivities } from './activities';
 
 const pinoLevels: Record<LogLevel, 'trace' | 'debug' | 'info' | 'warn' | 'error'> = {
   TRACE: 'trace',
@@ -45,6 +47,11 @@ async function main(): Promise<void> {
   }
 
   installTemporalLogger();
+  const redis = await connectRedis();
+  const hotelCache = createHotelCache(redis, {
+    fullSeconds: config.CACHE_TTL_SECONDS,
+    partialSeconds: config.PARTIAL_CACHE_TTL_SECONDS,
+  });
   const connection = await NativeConnection.connect({ address: config.TEMPORAL_ADDRESS });
   try {
     const worker = await Worker.create({
@@ -52,7 +59,7 @@ async function main(): Promise<void> {
       namespace: config.TEMPORAL_NAMESPACE,
       taskQueue: config.TEMPORAL_TASK_QUEUE,
       ...workflowSource,
-      activities,
+      activities: createActivities({ hotelCache, config }),
     });
     logger.info(
       { taskQueue: config.TEMPORAL_TASK_QUEUE, workflowSource: useBundle ? 'bundle' : 'source' },
@@ -62,6 +69,7 @@ async function main(): Promise<void> {
     logger.info('Temporal worker stopped');
   } finally {
     await connection.close();
+    await redis.close();
   }
 }
 

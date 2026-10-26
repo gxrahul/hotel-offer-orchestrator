@@ -2,7 +2,21 @@ import { ApplicationFailure } from '@temporalio/activity';
 import { MockActivityEnvironment } from '@temporalio/testing';
 import { DefaultLogger, type LogEntry } from '@temporalio/worker';
 import type { SupplierName } from '../../src/domain/types';
-import { fetchSupplierHotels } from '../../src/temporal/activities';
+import type { HotelCache } from '../../src/lib/hotelCache';
+import { createActivities } from '../../src/temporal/activities';
+
+const fakeHotelCache: HotelCache = {
+  save: () => Promise.resolve({ ttlSeconds: 300 }),
+  query: () => Promise.resolve({ hit: false }),
+};
+
+const { fetchSupplierHotels } = createActivities({
+  hotelCache: fakeHotelCache,
+  config: {
+    SUPPLIER_A_URL: 'http://localhost:3000/supplierA/hotels',
+    SUPPLIER_B_URL: 'http://localhost:3000/supplierB/hotels',
+  },
+});
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status });

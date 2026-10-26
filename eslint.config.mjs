@@ -33,6 +33,12 @@ export default defineConfig(
     extends: [tseslint.configs.disableTypeChecked],
   },
   {
+    files: ['**/*.js'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
     files: ['test/**/*.ts', '**/*.test.ts'],
     rules: {
       '@typescript-eslint/unbound-method': 'off',

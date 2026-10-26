@@ -14,6 +14,9 @@ const envSchema = z.object({
 
   SUPPLIER_A_URL: z.url().default('http://localhost:3000/supplierA/hotels'),
   SUPPLIER_B_URL: z.url().default('http://localhost:3000/supplierB/hotels'),
+
+  CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  PARTIAL_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(30),
 });
 
 export type Config = Readonly<z.infer<typeof envSchema>>;

@@ -20,7 +20,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "jest"
+    "test": "jest",
+    "test:integration": "jest --config jest.integration.config.js"
   },
   "dependencies": {
     "@temporalio/activity": "1.24.0",
@@ -39,12 +40,14 @@
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.19.2",
+    "@types/supertest": "^7.2.1",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
     "jest": "^30.5.2",
     "pino-pretty": "^13.2.0",
     "prettier": "^3.9.10",
+    "supertest": "^7.3.1",
     "ts-jest": "^29.4.15",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",

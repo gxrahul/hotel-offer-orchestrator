@@ -12,6 +12,8 @@ describe('loadConfig', () => {
       TEMPORAL_TASK_QUEUE: 'hotel-offers',
       SUPPLIER_A_URL: 'http://localhost:3000/supplierA/hotels',
       SUPPLIER_B_URL: 'http://localhost:3000/supplierB/hotels',
+      CACHE_TTL_SECONDS: 300,
+      PARTIAL_CACHE_TTL_SECONDS: 30,
     });
   });
 
