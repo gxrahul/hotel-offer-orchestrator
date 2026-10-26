@@ -11,6 +11,9 @@ const envSchema = z.object({
   TEMPORAL_ADDRESS: z.string().min(1).default('localhost:7233'),
   TEMPORAL_NAMESPACE: z.string().min(1).default('default'),
   TEMPORAL_TASK_QUEUE: z.string().min(1).default('hotel-offers'),
+
+  SUPPLIER_A_URL: z.url().default('http://localhost:3000/supplierA/hotels'),
+  SUPPLIER_B_URL: z.url().default('http://localhost:3000/supplierB/hotels'),
 });
 
 export type Config = Readonly<z.infer<typeof envSchema>>;

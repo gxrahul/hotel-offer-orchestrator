@@ -10,6 +10,8 @@ describe('loadConfig', () => {
       TEMPORAL_ADDRESS: 'localhost:7233',
       TEMPORAL_NAMESPACE: 'default',
       TEMPORAL_TASK_QUEUE: 'hotel-offers',
+      SUPPLIER_A_URL: 'http://localhost:3000/supplierA/hotels',
+      SUPPLIER_B_URL: 'http://localhost:3000/supplierB/hotels',
     });
   });
 

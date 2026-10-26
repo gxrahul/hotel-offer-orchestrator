@@ -1,18 +1,22 @@
+import type { Client } from '@temporalio/client';
 import express, { type ErrorRequestHandler, type Express } from 'express';
 import { pinoHttp } from 'pino-http';
 import { config } from '../lib/config';
 import { logger } from '../lib/logger';
 import { connectRedis } from '../lib/redis';
+import { connectTemporalClient } from '../temporal/client';
 import { healthRouter } from './routes/health';
+import { createHotelsRouter } from './routes/hotels';
 import { mockSuppliersRouter } from './routes/mockSuppliers';
 
-export function createApp(): Express {
+export function createApp(temporalClient: Client): Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(pinoHttp({ logger }));
 
   app.use(healthRouter);
   app.use(mockSuppliersRouter);
+  app.use(createHotelsRouter(temporalClient));
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not Found' });
@@ -29,17 +33,17 @@ export function createApp(): Express {
 
 async function main(): Promise<void> {
   const redis = await connectRedis();
+  const temporalClient = await connectTemporalClient();
 
-  const server = createApp().listen(config.PORT, () => {
+  const server = createApp(temporalClient).listen(config.PORT, () => {
     logger.info({ port: config.PORT }, 'API server listening');
   });
 
   const shutdown = (signal: NodeJS.Signals): void => {
     logger.info({ signal }, 'Shutting down API server');
     server.close(() => {
-      redis
-        .close()
-        .catch((err: unknown) => logger.error({ err }, 'Error closing Redis'))
+      Promise.all([redis.close(), temporalClient.connection.close()])
+        .catch((err: unknown) => logger.error({ err }, 'Error closing connections'))
         .finally(() => process.exit(0));
     });
   };

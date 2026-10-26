@@ -43,8 +43,13 @@ services:
     image: hotel-offer-orchestrator:local
     pull_policy: never
     command: ['node', 'dist/temporal/worker.js']
-    environment: *app-env
+    environment:
+      <<: *app-env
+      SUPPLIER_A_URL: http://api:3000/supplierA/hotels
+      SUPPLIER_B_URL: http://api:3000/supplierB/hotels
     depends_on:
+      api:
+        condition: service_healthy
       redis:
         condition: service_healthy
       temporal-create-namespace:
