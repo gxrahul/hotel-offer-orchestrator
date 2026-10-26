@@ -6,22 +6,30 @@ import { createHotelCache, type HotelCache } from '../lib/hotelCache';
 import { logger } from '../lib/logger';
 import { connectRedis } from '../lib/redis';
 import { connectTemporalClient } from '../temporal/client';
+import { createMockSupplierState } from './mockSupplierState';
 import { healthRouter } from './routes/health';
 import { createHotelsRouter } from './routes/hotels';
-import { mockSuppliersRouter } from './routes/mockSuppliers';
+import { createMockControlRouter } from './routes/mockControl';
+import { createMockSuppliersRouter } from './routes/mockSuppliers';
 
 export interface AppDeps {
   temporalClient: Client;
   hotelCache: HotelCache;
+  enableMockSuppliers: boolean;
 }
 
-export function createApp({ temporalClient, hotelCache }: AppDeps): Express {
+export function createApp({ temporalClient, hotelCache, enableMockSuppliers }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(pinoHttp({ logger }));
+  app.use(express.json());
 
   app.use(healthRouter);
-  app.use(mockSuppliersRouter);
+  if (enableMockSuppliers) {
+    const mockSupplierState = createMockSupplierState();
+    app.use(createMockSuppliersRouter(mockSupplierState));
+    app.use(createMockControlRouter({ state: mockSupplierState, hotelCache }));
+  }
   app.use(createHotelsRouter({ temporalClient, hotelCache }));
 
   app.use((_req, res) => {
@@ -45,7 +53,15 @@ async function main(): Promise<void> {
     partialSeconds: config.PARTIAL_CACHE_TTL_SECONDS,
   });
 
-  const server = createApp({ temporalClient, hotelCache }).listen(config.PORT, () => {
+  if (config.ENABLE_MOCK_SUPPLIERS) {
+    logger.info('Mock supplier routes enabled (test only)');
+  }
+
+  const server = createApp({
+    temporalClient,
+    hotelCache,
+    enableMockSuppliers: config.ENABLE_MOCK_SUPPLIERS,
+  }).listen(config.PORT, () => {
     logger.info({ port: config.PORT }, 'API server listening');
   });
 

@@ -16,9 +16,9 @@ const filteredHotels = delhiHotels.slice(1);
 function setup() {
   const execute = jest.fn<Promise<HotelOffersResult>, unknown[]>();
   const query = jest.fn<Promise<CacheQueryResult>, Parameters<HotelCache['query']>>();
-  const hotelCache: HotelCache = { save: jest.fn(), query };
+  const hotelCache: HotelCache = { save: jest.fn(), query, clearAll: jest.fn() };
   const temporalClient = { workflow: { execute } } as unknown as Client;
-  const app = createApp({ temporalClient, hotelCache });
+  const app = createApp({ temporalClient, hotelCache, enableMockSuppliers: false });
   return { app, execute, query };
 }
 

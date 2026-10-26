@@ -8,6 +8,7 @@ import { createActivities } from '../../src/temporal/activities';
 const fakeHotelCache: HotelCache = {
   save: () => Promise.resolve({ ttlSeconds: 300 }),
   query: () => Promise.resolve({ hit: false }),
+  clearAll: () => Promise.resolve(0),
 };
 
 const { fetchSupplierHotels } = createActivities({

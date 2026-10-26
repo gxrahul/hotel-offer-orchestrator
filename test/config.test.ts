@@ -14,7 +14,14 @@ describe('loadConfig', () => {
       SUPPLIER_B_URL: 'http://localhost:3000/supplierB/hotels',
       CACHE_TTL_SECONDS: 300,
       PARTIAL_CACHE_TTL_SECONDS: 30,
+      ENABLE_MOCK_SUPPLIERS: false,
     });
+  });
+
+  it('parses ENABLE_MOCK_SUPPLIERS as a boolean', () => {
+    expect(loadConfig({ ENABLE_MOCK_SUPPLIERS: 'true' }).ENABLE_MOCK_SUPPLIERS).toBe(true);
+    expect(loadConfig({ ENABLE_MOCK_SUPPLIERS: 'false' }).ENABLE_MOCK_SUPPLIERS).toBe(false);
+    expect(() => loadConfig({ ENABLE_MOCK_SUPPLIERS: 'maybe' })).toThrow(/ENABLE_MOCK_SUPPLIERS/);
   });
 
   it('coerces numeric values', () => {

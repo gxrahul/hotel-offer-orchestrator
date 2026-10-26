@@ -17,6 +17,8 @@ const envSchema = z.object({
 
   CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
   PARTIAL_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(30),
+
+  ENABLE_MOCK_SUPPLIERS: z.stringbool().default(false),
 });
 
 export type Config = Readonly<z.infer<typeof envSchema>>;

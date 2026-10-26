@@ -121,6 +121,22 @@ describe('hotelCache (Redis)', () => {
     });
   });
 
+  it('clearAll deletes every hotels:* key and nothing else', async () => {
+    const unrelatedKey = `other:${randomUUID()}`;
+    await redis.set(unrelatedKey, 'keep me');
+    const [firstCity, secondCity] = [newCity(), newCity()];
+    await cache.save(firstCity, delhiHotels, []);
+    await cache.save(secondCity, [], []);
+
+    const deletedKeys = await cache.clearAll();
+
+    expect(deletedKeys).toBeGreaterThanOrEqual(3);
+    expect(await redis.keys('hotels:*')).toEqual([]);
+    expect(await cache.query(firstCity)).toEqual({ hit: false });
+    expect(await redis.get(unrelatedKey)).toBe('keep me');
+    await redis.del(unrelatedKey);
+  });
+
   it('uses the full TTL for a complete result', async () => {
     const city = newCity();
     const { ttlSeconds } = await cache.save(city, delhiHotels, []);

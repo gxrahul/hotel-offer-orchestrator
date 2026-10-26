@@ -20,6 +20,7 @@ services:
     environment:
       <<: *app-env
       PORT: 3000
+      ENABLE_MOCK_SUPPLIERS: 'true'
     ports:
       - '3000:3000'
     depends_on:

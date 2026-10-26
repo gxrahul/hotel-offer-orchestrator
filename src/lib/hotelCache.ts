@@ -17,6 +17,7 @@ export interface HotelCache {
     failedSuppliers: SupplierName[],
   ): Promise<{ ttlSeconds: number }>;
   query(city: string, minPrice?: number, maxPrice?: number): Promise<CacheQueryResult>;
+  clearAll(): Promise<number>;
 }
 
 interface CacheMeta {
@@ -86,6 +87,16 @@ export function createHotelCache(redis: RedisClient, ttls: CacheTtls): HotelCach
         hotels: members.map(fromMember),
         failedSuppliers: meta.failedSuppliers,
       };
+    },
+
+    async clearAll() {
+      let deletedKeys = 0;
+      for await (const keys of redis.scanIterator({ MATCH: 'hotels:*', COUNT: 100 })) {
+        if (keys.length > 0) {
+          deletedKeys += await redis.del(keys);
+        }
+      }
+      return deletedKeys;
     },
   };
 }
