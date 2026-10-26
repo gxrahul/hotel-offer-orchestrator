@@ -1,13 +1,17 @@
 import type { Client } from '@temporalio/client';
 import request from 'supertest';
+import type { HealthChecks } from '../../src/api/health';
 import { createApp } from '../../src/api/server';
 import type { HotelCache } from '../../src/lib/hotelCache';
+
+const up = () => Promise.resolve();
+const healthChecks: HealthChecks = { supplierA: up, supplierB: up, redis: up, temporal: up };
 
 function setup(enableMockSuppliers = true) {
   const clearAll = jest.fn<Promise<number>, []>().mockResolvedValue(2);
   const hotelCache: HotelCache = { save: jest.fn(), query: jest.fn(), clearAll };
   const temporalClient = { workflow: { execute: jest.fn() } } as unknown as Client;
-  const app = createApp({ temporalClient, hotelCache, enableMockSuppliers });
+  const app = createApp({ temporalClient, hotelCache, healthChecks, enableMockSuppliers });
   return { app, clearAll };
 }
 

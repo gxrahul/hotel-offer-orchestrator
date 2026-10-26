@@ -1,5 +1,6 @@
 import { ApplicationFailure, WorkflowFailedError, type Client } from '@temporalio/client';
 import request from 'supertest';
+import type { HealthChecks } from '../../src/api/health';
 import { createApp } from '../../src/api/server';
 import type { HotelOffer } from '../../src/domain/types';
 import type { CacheQueryResult, HotelCache } from '../../src/lib/hotelCache';
@@ -13,12 +14,15 @@ const delhiHotels: HotelOffer[] = [
 
 const filteredHotels = delhiHotels.slice(1);
 
+const up = () => Promise.resolve();
+const healthChecks: HealthChecks = { supplierA: up, supplierB: up, redis: up, temporal: up };
+
 function setup() {
   const execute = jest.fn<Promise<HotelOffersResult>, unknown[]>();
   const query = jest.fn<Promise<CacheQueryResult>, Parameters<HotelCache['query']>>();
   const hotelCache: HotelCache = { save: jest.fn(), query, clearAll: jest.fn() };
   const temporalClient = { workflow: { execute } } as unknown as Client;
-  const app = createApp({ temporalClient, hotelCache, enableMockSuppliers: false });
+  const app = createApp({ temporalClient, hotelCache, healthChecks, enableMockSuppliers: false });
   return { app, execute, query };
 }
 
